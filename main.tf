@@ -8,7 +8,7 @@ resource "aws_security_group" "jumpbox_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Allow SSH from anywhere
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   // Define egress rules as needed
@@ -16,11 +16,10 @@ resource "aws_security_group" "jumpbox_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]  # Allow all outbound traffic
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-# Create EC2 instance
 resource "aws_instance" "jumpbox" {
   ami             = var.ami
   instance_type   = var.instance_type
