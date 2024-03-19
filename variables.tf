@@ -3,10 +3,6 @@ variable "instance_sg_name" {
   description = "The name of the sg "
 }
 
-variable "vpc_id" {
-  description = "The vpc id "
-}
-
 variable "ami" {
   description = "ami id "
 }
