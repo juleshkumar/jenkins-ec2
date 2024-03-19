@@ -26,7 +26,7 @@ resource "aws_instance" "jumpbox" {
   instance_type   = var.instance_type
   subnet_id       = var.subnet_id
   key_name        = var.key_pair
-  security_groups = [aws_security_group.jumpbox_sg.name]
+  security_groups = [aws_security_group.jumpbox_sg.id]
   associate_public_ip_address = true
 
   // Define additional configuration as needed
