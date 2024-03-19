@@ -1,71 +1,41 @@
-pipeline {
-    agent any
+resource "aws_security_group" "jumpbox_sg" {
+  name        =  var.instance_sg_name
+  description = "Security group for the EC2 instance"
+  vpc_id      = var.vpc_id
 
-    parameters {
-        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
-        choice(name: 'action', choices: ['apply', 'destroy'], description: 'Select the action to perform')
-        string(name: 'instance_sg_name', defaultValue: 'ec2-sg', description: 'sg name')
-        string(name: 'vpc_id', defaultValue: 'vpc-id', description: 'vpc id')
-        string(name: 'ami', defaultValue: 'ami-1234', description: 'ami here')
-        string(name: 'instance_type', defaultValue: 't2.micro', description: 'instance type')
-        string(name: 'subnet_id', defaultValue: 'sub-1234', description: 'subnet id')
-        string(name: 'key_pair', defaultValue: 'keyparir', description: 'key pair ')
-    }
+  // Define ingress rules as needed
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow SSH from anywhere
+  }
 
-    environment {
-        AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
-        AWS_DEFAULT_REGION    = 'ap-south-1'
-    }
+  // Define egress rules as needed
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow all outbound traffic
+  }
+}
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/juleshkumar/jenkins-ec2.git'
-            }
-        }
-        stage('Terraform init') {
-            steps {
-                sh 'terraform init'
-            }
-        }
-        stage('Plan') {
-            steps {
-                sh "terraform plan -out tfplan \
-                        -var 'instance_sg_name=${params.instance_sg_name}' \
-                        -var 'vpc_id=${params.vpc_id}' \
-                        -var 'ami=${params.ami}' \
-                        -var 'instance_type=${params.instance_type}' \
-                        -var 'subnet_id=${params.subnet_id}' \
-                        -var 'key_pair=${params.key_pair}'"
-                sh 'terraform show -no-color tfplan > tfplan.txt'
-            }
-        }
-        
-        stage('Apply / Destroy') {
-            steps {
-                script {
-                    if (params.action == 'apply') {
-                        if (!params.autoApprove) {
-                            def plan = readFile 'tfplan.txt'
-                            input message: "Do you want to apply the plan?",
-                            parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
-                        }
+# Create EC2 instance
+resource "aws_instance" "jumpbox" {
+  ami             = var.ami
+  instance_type   = var.instance_type
+  subnet_id       = var.subnet_id
+  key_name        = var.key_pair
+  security_groups = [aws_security_group.jumpbox_sg.id]
+  associate_public_ip_address = true
 
-                        sh "terraform ${params.action} -input=false tfplan"
-                    } else if (params.action == 'destroy') {
-                        sh "terraform ${params.action} --auto-approve \
-                                -var 'instance_sg_name=${params.instance_sg_name}' \
-                                -var 'vpc_id=${params.vpc_id}' \
-                                -var 'ami=${params.ami}' \
-                                -var 'instance_type=${params.instance_type}' \
-                                -var 'subnet_id=${params.subnet_id}' \
-                                -var 'key_pair=${params.key_pair}'"
-                    } else {
-                        error "Invalid action selected. Please choose either 'apply' or 'destroy'."
-                    }
-                }
-            }
-        }
-    }
+  // Define additional configuration as needed
+  // For example, user_data, tags, etc.
+  
+  // Define root volume
+  root_block_device {
+    volume_type           = "gp3"
+    volume_size           = 30  # Size in GB
+    delete_on_termination = true
+  }
 }
