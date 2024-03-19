@@ -21,7 +21,7 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 // Clone your Terraform scripts from GitHub
-                git 'https://github.com/juleshkumar/jenkins-test.git'
+                git branch: 'main', url: 'https://github.com/juleshkumar/jenkins-test.git'
                 
                 // Execute first Terraform script
                 sh 'terraform init'
