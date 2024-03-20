@@ -7,7 +7,6 @@ pipeline {
         string(name: 'instance_sg_name', defaultValue: 'ec2-sg', description: 'sg name')
         string(name: 'ami', defaultValue: 'ami-1234', description: 'ami here')
         string(name: 'instance_type', defaultValue: 't2.micro', description: 'instance type')
-        string(name: 'subnet_id', defaultValue: 'sub-1234', description: 'subnet id')
         string(name: 'key_pair', defaultValue: 'keyparir', description: 'key pair ')
     }
 
@@ -18,23 +17,28 @@ pipeline {
     }
 
     stages {
-        stage('Terraform Apply') {
+        stage('Retrieve Outputs') {
             steps {
-                // Clone your Terraform scripts from GitHub
-                git branch: 'main', url: 'https://github.com/juleshkumar/jenkins-test/blob/4e3835c2cb778a42ae6e31971371980665256f57/outputs.tf'
-                
-                // Execute first Terraform script
-                sh 'terraform init'
-                sh 'terraform apply -auto-approve'
-                
-                // Retrieve output value from the first Terraform script
-                script {
-                    def exampleOutput = sh(script: 'terraform output aws_vpc.test.id', returnStdout: true).trim()
-                    // Pass output value as an environment variable
-                    env.EXAMPLE_OUTPUT = exampleOutput
-                }
+                // Use Copy Artifact plugin to retrieve outputs.tf from the previous job
+                copyArtifacts projectName: 'julesh-vpc-pipeline', selector: ('outputs.tf')
             }
         }
+        stage('Extract Parameters') {
+            steps {
+                // Parse outputs.tf and extract output values
+                script {
+                    def outputs = readFile('outputs.tf')
+                    // Extract values from outputs and assign them to parameters
+                    // Example:
+                    def outputValue1 = getValueFromOutputs(outputs, "public_subnet_a_ids")
+                    def outputValue2 = getValueFromOutputs(outputs, "vpc_id")
+                    // Assign parameters for downstream tasks
+                    // You can use withEnv to set environment variables as parameters
+                    params.OutputValue1 = outputValue1
+                    params.OutputValue2 = outputValue2
+                    }
+                }
+            }
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/juleshkumar/jenkins-ec2.git'
@@ -50,9 +54,9 @@ pipeline {
                 sh "terraform plan -out tfplan \
                         -var 'instance_sg_name=${params.instance_sg_name}' \
                         -var 'ami=${params.ami}' \
-                        -var 'example_input=${env.EXAMPLE_OUTPUT}' \
+                        -var 'vpc_id=${params.OutputValue1}' \
                         -var 'instance_type=${params.instance_type}' \
-                        -var 'subnet_id=${params.subnet_id}' \
+                        -var 'subnet_id=${params.OutputValue2}' \
                         -var 'key_pair=${params.key_pair}'"
                 sh 'terraform show -no-color tfplan > tfplan.txt'
             }
@@ -72,10 +76,10 @@ pipeline {
                     } else if (params.action == 'destroy') {
                         sh "terraform ${params.action} --auto-approve \
                                 -var 'instance_sg_name=${params.instance_sg_name}' \
-                                -var 'example_input=${env.EXAMPLE_OUTPUT}' \
+                                -var 'vpc_id=${params.OutputValue1}' \
                                 -var 'ami=${params.ami}' \
                                 -var 'instance_type=${params.instance_type}' \
-                                -var 'subnet_id=${params.subnet_id}' \
+                                -var 'subnet_id=${params.OutputValue2}' \
                                 -var 'key_pair=${params.key_pair}'"
                     } else {
                         error "Invalid action selected. Please choose either 'apply' or 'destroy'."
