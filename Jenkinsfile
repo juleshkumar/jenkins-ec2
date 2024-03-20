@@ -20,7 +20,7 @@ pipeline {
         stage('Retrieve Outputs') {
             steps {
                 // Use Copy Artifact plugin to retrieve outputs.tf from the previous job
-                copyArtifacts projectName: 'julesh-vpc-pipeline', selector: specific('terraform_outputs.json')
+                copyArtifacts projectName: 'testing', selector: specific('terraform_outputs.json')
             }
         }
         stage('Extract Parameters') {
