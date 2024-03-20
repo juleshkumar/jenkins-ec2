@@ -20,7 +20,7 @@ pipeline {
         stage('Retrieve Outputs') {
             steps {
                 // Use Copy Artifact plugin to retrieve outputs.tf from the previous job
-                copyArtifacts projectName: 'julesh-vpc-pipeline', selector: ('outputs.tf')
+                copyArtifacts projectName: 'julesh-vpc-pipeline', selector: specific('outputs.tf')
             }
         }
         stage('Extract Parameters') {
@@ -28,17 +28,15 @@ pipeline {
                 // Parse outputs.tf and extract output values
                 script {
                     def outputs = readFile('outputs.tf')
-                    // Extract values from outputs and assign them to parameters
-                    // Example:
-                    def outputValue1 = getValueFromOutputs(outputs, "public_subnet_a_ids")
-                    def outputValue2 = getValueFromOutputs(outputs, "vpc_id")
-                    // Assign parameters for downstream tasks
-                    // You can use withEnv to set environment variables as parameters
+                    // Example of extracting values using regex
+                    def outputValue1 = outputs =~ /public_subnet_a_ids = "(.*)"/ ? ~1 : ''
+                    def outputValue2 = outputs =~ /vpc_id = "(.*)"/ ? ~1 : ''
+                    // Assign extracted values as parameters
                     params.OutputValue1 = outputValue1
                     params.OutputValue2 = outputValue2
-                    }
                 }
             }
+        }
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/juleshkumar/jenkins-ec2.git'
