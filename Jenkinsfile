@@ -20,14 +20,14 @@ pipeline {
         stage('Retrieve Outputs') {
             steps {
                 // Use Copy Artifact plugin to retrieve outputs.tf from the previous job
-                copyArtifacts projectName: 'julesh-vpc-pipeline', selector: specific('outputs.tf')
+                copyArtifacts projectName: 'julesh-vpc-pipeline', selector: specific('terraform_outputs.json')
             }
         }
         stage('Extract Parameters') {
             steps {
                 // Parse outputs.tf and extract output values
                 script {
-                    def outputs = readFile('outputs.tf')
+                    def outputs = readFile('terraform_outputs.json')
                     // Example of extracting values using regex
                     def outputValue1 = outputs =~ /public_subnet_a_ids = "(.*)"/ ? ~1 : ''
                     def outputValue2 = outputs =~ /vpc_id = "(.*)"/ ? ~1 : ''
@@ -64,8 +64,6 @@ pipeline {
             steps {
                 script {
                     if (params.action == 'apply') {
-                        if (!params.autoApprove) {
-                            def plan = readFile 'tfplan.txt'
                             input message: "Do you want to apply the plan?",
                             parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
                         }
