@@ -25,15 +25,15 @@ pipeline {
         }
         stage('Extract Parameters') {
             steps {
-        // Parse outputs from terraform_outputs.json
+                // Parse outputs from terraform_outputs.json
                 script {
                     def outputs = readJSON file: 'terraform_outputs.json'
-            // Extract output values
+                    // Extract output values
                     def outputValue1 = outputs.public_subnet_a_ids.value
                     def outputValue2 = outputs.vpc_id.value
-            // Assign extracted values as parameters
-                    params.vpcid = vpcid
-                    params.subnetid = subnetid
+                    // Assign extracted values as parameters
+                    params.vpcid = outputValue2
+                    params.subnetid = outputValue1
                 }
             }
         }
@@ -61,27 +61,27 @@ pipeline {
         }
         
         stage('Apply / Destroy') {
-    steps {
-        script {
-            if (params.action == 'apply') {
-                def plan = readFile 'tfplan.txt'
-                input message: "Do you want to apply the plan?",
-                parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
-                
-                sh "terraform ${params.action} -input=false tfplan"
-            } else if (params.action == 'destroy') {
-                sh "terraform ${params.action} --auto-approve \
-                        -var 'instance_sg_name=${params.instance_sg_name}' \
-                        -var 'vpc_id=${params.vpcid}' \
-                        -var 'ami=${params.ami}' \
-                        -var 'instance_type=${params.instance_type}' \
-                        -var 'subnet_id=${params.subnetid}' \
-                        -var 'key_pair=${params.key_pair}'"
-            } else {
-                error "Invalid action selected. Please choose either 'apply' or 'destroy'."
+            steps {
+                script {
+                    if (params.action == 'apply') {
+                        def plan = readFile 'tfplan.txt'
+                        input message: "Do you want to apply the plan?",
+                        parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+                        
+                        sh "terraform ${params.action} -input=false tfplan"
+                    } else if (params.action == 'destroy') {
+                        sh "terraform ${params.action} --auto-approve \
+                                -var 'instance_sg_name=${params.instance_sg_name}' \
+                                -var 'vpc_id=${params.vpcid}' \
+                                -var 'ami=${params.ami}' \
+                                -var 'instance_type=${params.instance_type}' \
+                                -var 'subnet_id=${params.subnetid}' \
+                                -var 'key_pair=${params.key_pair}'"
+                    } else {
+                        error "Invalid action selected. Please choose either 'apply' or 'destroy'."
+                    }
+                }
             }
         }
-    }
-}
     }
 }
