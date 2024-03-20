@@ -25,13 +25,13 @@ pipeline {
         }
         stage('Extract Parameters') {
             steps {
-                // Parse outputs.tf and extract output values
+        // Parse outputs from terraform_outputs.json
                 script {
-                    def outputs = readFile('terraform_outputs.json')
-                    // Example of extracting values using regex
-                    def outputValue1 = outputs =~ /public_subnet_a_ids = "(.*)"/ ? ~1 : ''
-                    def outputValue2 = outputs =~ /vpc_id = "(.*)"/ ? ~1 : ''
-                    // Assign extracted values as parameters
+                    def outputs = readJSON file: 'terraform_outputs.json'
+            // Extract output values
+                    def outputValue1 = outputs.public_subnet_a_ids
+                    def outputValue2 = outputs.vpc_id
+            // Assign extracted values as parameters
                     params.OutputValue1 = outputValue1
                     params.OutputValue2 = outputValue2
                 }
