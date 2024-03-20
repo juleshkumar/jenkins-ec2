@@ -29,8 +29,8 @@ pipeline {
                 script {
                     def outputs = readJSON file: 'terraform_outputs.json'
             // Extract output values
-                    def outputValue1 = outputs.json.public_subnet_a_ids.value
-                    def outputValue2 = outputs.json.vpc_id.value
+                    def outputValue1 = outputs.public_subnet_a_ids.value
+                    def outputValue2 = outputs.vpc_id.value
             // Assign extracted values as parameters
                     params.vpcid = vpcid
                     params.subnetid = subnetid
