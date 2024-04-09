@@ -114,34 +114,7 @@ pipeline {
                             -var 'instance_type=${params.instance_type}' \
                             -var 'subnet_id=${env.PARAM_1}' \
                             -var 'key_pair=${params.key_pair}'"
-                    sh 'terraform show -no-color tfplan > tfplan.txt'
-                    script {
-                    if (params.action == 'apply') {
-                        if (!params.autoApprove) {
-                            def plan = readFile 'tfplan.txt'
-                            input message: "Do you want to apply the plan?",
-                            parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
-                        }
-
-                        sh "terraform ${params.action} -input=false tfplan"
-                    } else if (params.action == 'destroy') {
-                        sh "terraform ${params.action} --auto-approve \
-                                -var 'name=${params.name}' \
-                                -var 'project=${params.project}' \
-                                -var 'environment=${params.environment}' \
-                                -var 'region=${params.region}' \
-                                -var 'cidr_block=${params.cidr_block}' \
-                                -var 'availability_zone_one=${params.availability_zone_one}' \
-                                -var 'availability_zone_two=${params.availability_zone_two}' \
-                                -var 'public_subnet_a_cidr_blocks=${params.public_subnet_a_cidr_blocks}' \
-                                -var 'public_subnet_b_cidr_blocks=${params.public_subnet_b_cidr_blocks}' \
-                                -var 'private_subnet_a_cidr_blocks=${params.private_subnet_a_cidr_blocks}' \
-                                -var 'private_subnet_b_cidr_blocks=${params.private_subnet_b_cidr_blocks}'"
-                    } else {
-                        error "Invalid action selected. Please choose either 'apply' or 'destroy'."
-                    }
-
-            }
+                    sh 'terraform apply -auto-approve tfplan'
                 }
             }
         }
