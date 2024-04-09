@@ -106,7 +106,6 @@ pipeline {
                     env.PARAM_2 = parsedOutputs.vpc_id.value
 
                     // Execute Terraform commands for Stage 2
-                    sh 'terraform init'
                     sh "terraform plan -out tfplan \
                             -var 'instance_sg_name=${params.instance_sg_name}' \
                             -var 'ami=${params.ami}' \
