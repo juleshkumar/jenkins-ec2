@@ -15,12 +15,10 @@ pipeline {
         string(name: 'public_subnet_b_cidr_blocks', defaultValue: '10.0.1.0/24', description: 'enter cidr for public subnet 1b')
         string(name: 'private_subnet_a_cidr_blocks', defaultValue: '10.0.2.0/24', description: 'enter cidr for pvt subnet 1a')
         string(name: 'private_subnet_b_cidr_blocks', defaultValue: '10.0.3.0/24', description: 'enter cidr for pvt subnet 1b')
-        string(name: 'PARAM_1', defaultValue: '', description: 'Description for PARAM_1')
         string(name: 'instance_sg_name', defaultValue: 'ec2-sg', description: 'sg name')
         string(name: 'ami', defaultValue: 'ami-09298640a92b2d12c', description: 'ami here')
         string(name: 'instance_type', defaultValue: 't2.micro', description: 'instance type')
         string(name: 'key_pair', defaultValue: 'jenkins-test-server2-keypair', description: 'key pair ')
-        string(name: 'PARAM_2', defaultValue: '', description: 'Description for PARAM_2')
     }
 
     environment {
@@ -99,21 +97,44 @@ pipeline {
                 script {
                     // Read Terraform outputs from file
                     def tfOutputs = readFile 'outputs.tf'
-                    def parsedOutputs = readJSON text: tfOutputs
+                    def parsedOutputs = new groovy.json.JsonSlurper().parseText(tfOutputs)
 
                     // Store output values in environment variables for use in subsequent stages
-                    env.PARAM_1 = parsedOutputs.public_subnet_a_ids.value
-                    env.PARAM_2 = parsedOutputs.vpc_id.value
+                    def param1Value = parsedOutputs.public_subnet_a_ids.value
+                    def param2Value = parsedOutputs.vpc_id.value
 
                     // Execute Terraform commands for Stage 2
                     sh "terraform plan -out tfplan \
                             -var 'instance_sg_name=${params.instance_sg_name}' \
                             -var 'ami=${params.ami}' \
-                            -var 'vpc_id=${env.PARAM_2}' \
+                            -var 'vpc_id=${param2Value}' \
                             -var 'instance_type=${params.instance_type}' \
-                            -var 'subnet_id=${env.PARAM_1}' \
+                            -var 'subnet_id=${param1Value}' \
                             -var 'key_pair=${params.key_pair}'"
-                    sh 'terraform apply -auto-approve tfplan'
+                    sh 'terraform show -no-color tfplan > tfplan.txt'
+                        script {
+                    if (params.action == 'apply') {
+                        if (!params.autoApprove) {
+                            def plan = readFile 'tfplan.txt'
+                            input message: "Do you want to apply the plan?",
+                            parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+                        }
+
+                        sh "terraform ${params.action} -input=false tfplan"
+                    } else if (params.action == 'destroy') {
+                        sh "terraform ${params.action} --auto-approve \
+                                -var 'instance_sg_name=${params.instance_sg_name}' \
+                                -var 'ami=${params.ami}' \
+                                -var 'vpc_id=${param2Value}' \
+                                -var 'instance_type=${params.instance_type}' \
+                                -var 'subnet_id=${param1Value}' \
+                                -var 'key_pair=${params.key_pair}'"
+                                
+                    } else {
+                        error "Invalid action selected. Please choose either 'apply' or 'destroy'."
+                    }
+
+            }
                 }
             }
         }
