@@ -6,7 +6,7 @@ pipeline {
         choice(name: 'action', choices: ['apply', 'destroy'], description: 'Select the action to perform')
         string(name: 'instance_sg_name', defaultValue: 'ec2-sg', description: 'sg name')
         string(name: 'ami', defaultValue: 'ami-09298640a92b2d12c', description: 'ami here')
-        string(name: 'instance_type', defaultValue: 't2.micro', description: 'instance type')
+        string(name: 'instance_type', defaultValue: 't3a.medium', description: 'instance type')
         string(name: 'key_pair', defaultValue: 'jenkins-test-server2-keypair', description: 'key pair ')
         string(name: 'vpcid', defaultValue: 'vpc-0612b4cdd72608697', description: 'vpc id here')
         string(name: 'subnetid', defaultValue: 'subnet-0924996dc843af1b3', description: 'subnet id here')
